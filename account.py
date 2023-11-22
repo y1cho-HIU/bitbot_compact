@@ -77,14 +77,21 @@ class Account:
             print('##### SHORT -> OUT')
             print(order)
 
-    def get_account_info(self):
-        return self.client.futures_account()
-
-    def get_position_info(self):
-        return self.client.futures_position_information(symbol=self.symbol)
-
-    def get_trading_info(self):
-        return self.client.futures_account_trades(symbol=self.symbol)
-
-    def get_profit_info(self):
-        print("not yet.")
+    def terminate_position(self):
+        """ if quit-cmd entered. """
+        order = None
+        pos_info = self.client.futures_position_information
+        if self.now_position == self.POS_LONG:
+            order = self.client.futures_create_order(symbol=self.symbol,
+                                                     type='MARKET',
+                                                     side='SELL',
+                                                     quantity=float(pos_info[0]['positionAmt']),
+                                                     reduceOnly=True)
+        elif self.now_position == self.POS_SHORT:
+            order = self.client.futures_create_order(symbol=self.symbol,
+                                                     type='MARKET',
+                                                     side='SELL',
+                                                     quantity=abs(float(pos_info[0]['positionAmt'])),
+                                                     reduceOnly=True)
+        if order is not None:
+            print(order)

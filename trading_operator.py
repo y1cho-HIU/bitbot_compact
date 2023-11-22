@@ -1,6 +1,7 @@
 import asyncio
 import datetime
 import pprint
+import statistics
 import time
 
 import account
@@ -16,9 +17,14 @@ class Operator:
 
         self.coin_data = self.dataGetter.get_info_period()  # LIST
         self.next_position = 0  # POS_OUT
+        self.signal = False
         self.start_time = None
         self.start_balance = None
+        self.init_balance = None
+        self.symbol = symbol
         self.sma_period = sma_period
+        self.env_weight = env_weight
+        self.rrr_rate = rrr_rate
 
     def make_coin_data(self):
         now_data = self.dataGetter.get_info()
@@ -31,13 +37,17 @@ class Operator:
 
     async def execute_trading(self):
         self.start_time = datetime.datetime.now()
-        print(f'START TIME :: {self.start_time}')
+        self.init_balance = self.account.client.futures_account()['availableBalance']
+        print(f'START TIME \t: {self.start_time}')
+        print(f'INIT BALANCE \t: {self.init_balance}')
         try:
             while True:
-                self.account.trading_order()
                 self.make_coin_data()
-                self.next_position = self.strategy.envelope_strategy(coin_data=self.coin_data)
-                await time.sleep(300)
+                self.signal, self.next_position = self.strategy.envelope_strategy(coin_data=self.coin_data)
+                if self.signal is True:
+                    self.account.trading_order()
+
+                await asyncio.sleep(300)
         except Exception as e:
             print(f'ERROR {e}')
 
@@ -47,54 +57,101 @@ class Operator:
             # help command
             if key == "help" or key == "h":
                 print("help cmd")
-            # get_account_info -> from self.account
-            elif key == "info" or key == "i":
-                print("** ACCOUNT INFORMATION **")
-                print(self.account.get_account_info())
-            # get_position_info -> from self.account
-            elif key == "pos" or key == "p":
-                print("** POSITION INFORMATION **")
-                print(self.account.get_position_info())
-            # get_trading_info -> from self.account
-            elif key == "trade" or key == "h":
-                print("** TRADING INFORMATION **")
-                print(self.account.get_trading_info())
-            # get_profit_info -> from self.account
-            elif key == "profit" or key == "pnl":
-                print("** PROFIT INFORMATION **")
-                print(self.account.get_profit_info())
-            # get_time_info -> from trading_operator.py
-            elif key == "time" or key == "t":
-                print("** TIME INFORMATION **")
-                print(f'** START TIME : {self.start_time} **')
-                print(f'**  NOW  TIME : {datetime.datetime.now()} **')
-            # get_coin_data
-            elif key == "coin" or key == "c":
-                print("** COIN INFORMATION **")
+            # overall information
+            if key == "info" or key == "i":
+                print("** OVERALL INFO **")
+                print(self.get_all_info())
+            # coin data
+            if key == "coin" or key == "c":
+                print("** COIN DATA **")
                 pprint.pprint(self.coin_data)
-            # get_price_info -> from self.dataGetter
-            elif key == "price" or key == "1":
-                print("** PRICE INFORMATION **")
                 print(self.dataGetter.get_book_info())
+            # statistics info
+            if key == "stat" or key == "s":
+                print("** STATISTICS INFO **")
+                print(self.get_statistics_info())
             # quit cmd
             elif key == "quit" or key == "q":
+                self.account.terminate_position()
                 print("** SUCCESSFULLY TERMINATED. **")
+                print(self.get_all_info())
                 # log trading_info
                 asyncio.get_event_loop().stop()
-
-    async def run_together(self):
-        task_auto_trade = asyncio.create_task(self.execute_trading())
-        task_check_input = asyncio.create_task(self.cmd_input())
-
-        await asyncio.gather(task_auto_trade, task_check_input)
 
     @staticmethod
     def display_help_cmd():
         print("############# help cmd #############")
-        print("# display account info \t\t --press info or i")
-        print("# display trading info\t\t --press trade or h")
-        print("# display profit info\t\t --press profit or pnl")
-        print("# display time info\t\t --press time or t")
-        print("# display coin data info\t --press coin or c")
-        print("# display now price info\t -- press price or 1")
+        print("display all info \t\t --press info or i")
+        print("display coin data \t\t --press coin or c")
+        print("display statistics \t\t --press stat or s")
         print("# quit command \t\t\t --press quit or q")
+
+    def get_total_profit(self):
+        trades = self.account.client.futures_account_trades(symbol=self.symbol, limit=100)
+        total_profit = 0.0
+        total_cost = 0.0
+
+        for trade in trades:
+            # time = datetime.datetime.utcfromtimestamp(trade['time'] / 1000).strftime("%Y-%m-%d %H:%M:%S")
+            price = float(trade['price'])
+            qty = float(trade['qty'])
+            commission = float(trade['commission'])
+
+            if trade['buyer']:
+                total_cost += qty * price + commission
+            else:
+                total_profit += qty * price - commission
+
+        pnl = total_profit - total_cost
+        pnl_percentage = pnl / total_cost * 100 if total_cost != 0 else 0.0
+
+        return {
+            "total_profit": total_profit,
+            "total_cost": total_cost,
+            "pnl": pnl,
+            "pnl_percentage": pnl_percentage
+        }
+
+    def get_position_info(self):
+        pos_info = self.account.client.futures_position_information(symbol=self.symbol)
+        pos_side = "OUT"
+        if float(pos_info[0]['positionAmt']) > 0:
+            pos_side = "LONG"
+        elif float(pos_info[0]['positionAmt']) < 0:
+            pos_side = "SHORT"
+
+        return {
+            "position": pos_side,
+            "positionAmt": abs(float(pos_info[0]['positionAmt']))
+        }
+
+    def get_statistics_info(self):
+        close_list = [data['close'] for data in self.coin_data]
+        now_price = self.coin_data[-1]['close']
+        sma = round(sum(close_list) / len(close_list), 6)
+        std_dev = round(statistics.stdev(close_list), 6)
+        env_up = round(sma + (std_dev * self.env_weight), 6)
+        env_down = round(sma - (std_dev * self.env_weight), 6)
+        rrr_up = round(env_up + (env_up - sma) / self.rrr_rate, 6)
+        rrr_down = round(env_down - (sma - env_down) / self.rrr_rate, 6)
+
+        return {"now_price": now_price,
+                "now_sma": sma,
+                "std_dev": std_dev,
+                "env_up": env_up,
+                "env_down": env_down,
+                "rrr_up": rrr_up,
+                "rrr_down": rrr_down}
+
+    def get_all_info(self):
+        # get all info as json_style
+        return {"symbol": self.symbol,
+                "init_balance": self.init_balance,
+                "now_balance": self.account.client.futures_account()['availableBalance'],
+                "total_profit": self.get_total_profit(),
+                "7d_profit": "float",
+                "1d_profit": "float",
+                "start_time": self.start_time,
+                "now_pos": self.get_position_info(),
+                "historical_trading_info": self.account.client.futures_account_trades()
+                }

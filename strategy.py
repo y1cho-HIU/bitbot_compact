@@ -47,6 +47,7 @@ class Strategy:
 
     def envelope_strategy(self, coin_data):
         """ default signal, next_position -> not change """
+        signal = False
         next_position = self.now_position
 
         now_sma = self.get_sma(coin_data)
@@ -76,7 +77,10 @@ class Strategy:
         signal is True -> trading
         signal is False -> nothing
         """
-        return next_position
+        if self.now_position != next_position:
+            signal = True
+        return signal, next_position
 
-    def display_target_price(self):
-        print(f'target_price : {self.target_price} \t loss_price : {self.loss_price}')
+    def get_target_price(self):
+        return {"target_price": {self.target_price},
+                "loss_price": {self.loss_price}}

@@ -35,9 +35,12 @@ if __name__ == "__main__":
                                            rrr_rate=api_data['rrr_rate'],
                                            symbol=api_data['symbol'])
 
-    if api['ip_info'] == requests.get('http://ip.jsontest.com').json()['ip']:
+    if api_data['ip_info'] == requests.get('http://ip.jsontest.com').json()['ip']:
         try:
-            asyncio.run(myOperator.run_together())
+            loop = asyncio.get_event_loop()
+            tasks = [myOperator.execute_trading(), myOperator.cmd_input()]
+            loop.run_until_complete(*tasks)
+            loop.close()
         except Exception as e:
             print(f'__main__ ERROR : {e}')
     else:
