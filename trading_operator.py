@@ -1,8 +1,8 @@
 import asyncio
 import datetime
+import json
 import pprint
 import statistics
-import time
 
 import account
 import data_getter
@@ -36,7 +36,7 @@ class Operator:
             self.coin_data.append(now_data)
 
     async def execute_trading(self):
-        self.start_time = datetime.datetime.now()
+        self.start_time = datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S")
         self.init_balance = self.account.client.futures_account()['availableBalance']
         print(f'START TIME \t: {self.start_time}')
         print(f'INIT BALANCE \t: {self.init_balance}')
@@ -46,7 +46,7 @@ class Operator:
                 self.signal, self.next_position = self.strategy.envelope_strategy(coin_data=self.coin_data)
                 if self.signal is True:
                     self.account.trading_order()
-
+                self.update_json_info()
                 await asyncio.sleep(300)
         except Exception as e:
             print(f'ERROR {e}')
@@ -70,7 +70,7 @@ class Operator:
             # statistics info
             if key == "stat" or key == "s":
                 print("** STATISTICS INFO **")
-                print(self.get_statistics_info())
+                pprint.pprint(self.get_statistics_info())
             if key == "position" or key == "p":
                 print("** POSITION INFO **")
                 print(self.account.client.futures_position_information(symbol=self.symbol))
@@ -168,3 +168,24 @@ class Operator:
 
     def get_trading_info(self):
         return {"trading_info": self.account.client.futures_account_trades(symbol=self.symbol)}
+
+    def update_json_info(self):
+        """
+        modifying time : strf
+
+        coin_data.json
+        overall_info.json
+        trading_info.json
+        """
+        coin_data_file_path = "coin_data.json"
+        overall_info_file_path = "overall_info.json"
+        trading_info_file_path = "trading_info.json"
+
+        with open(coin_data_file_path, 'w') as coin:
+            json.dump(self.coin_data, coin, indent=4)
+
+        with open(overall_info_file_path, 'w') as ova:
+            json.dump(self.get_all_info(), ova, indent=4)
+
+        with open(trading_info_file_path, 'w') as trade:
+            json.dump(self.get_trading_info(), trade, indent=4)
