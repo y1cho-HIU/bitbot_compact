@@ -177,9 +177,10 @@ class Operator:
         overall_info.json
         trading_info.json
         """
-        coin_data_file_path = "coin_data.json"
-        overall_info_file_path = "overall_info.json"
-        trading_info_file_path = "trading_info.json"
+        coin_data_file_path = "json_repository/coin_data.json"
+        overall_info_file_path = "json_repository/overall_info.json"
+        trading_info_file_path = "json_repository/trading_info.json"
+        stat_info_file_path = "json_repository/statistics_info.json.json"
 
         with open(coin_data_file_path, 'w') as coin:
             json.dump(self.coin_data, coin, indent=4)
@@ -189,3 +190,6 @@ class Operator:
 
         with open(trading_info_file_path, 'w') as trade:
             json.dump(self.get_trading_info(), trade, indent=4)
+
+        with open(stat_info_file_path, 'w') as stat:
+            json.dump(self.get_statistics_info(), stat, indent=4)
