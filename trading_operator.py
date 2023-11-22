@@ -167,4 +167,4 @@ class Operator:
                 }
 
     def get_trading_info(self):
-        return {"trading_info": self.account.client.futures_account_trades()}
+        return {"trading_info": self.account.client.futures_account_trades(symbol=self.symbol)}
