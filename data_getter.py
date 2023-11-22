@@ -35,5 +35,5 @@ class DataGetter:
 
     def get_book_info(self):
         ticker_info = self.client.get_ticker(symbol=self.symbol)
-        return {"bid_price": ticker_info['bidPrice'],
-                "ask_price": ticker_info['askPrice']}
+        return {"bid_price": float(ticker_info['bidPrice']),
+                "ask_price": float(ticker_info['askPrice'])}

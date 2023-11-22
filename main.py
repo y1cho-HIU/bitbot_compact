@@ -37,10 +37,12 @@ if __name__ == "__main__":
 
     if api_data['ip_info'] == requests.get('http://ip.jsontest.com').json()['ip']:
         try:
-            loop = asyncio.get_event_loop()
-            tasks = [myOperator.execute_trading(), myOperator.cmd_input()]
-            loop.run_until_complete(*tasks)
-            loop.close()
+            async def run_together():
+                task_auto_trade = asyncio.create_task(myOperator.execute_trading())
+                task_check_cmd = asyncio.create_task(myOperator.cmd_input())
+                await asyncio.gather(task_auto_trade, task_check_cmd)
+
+            asyncio.run(run_together())
         except Exception as e:
             print(f'__main__ ERROR : {e}')
     else:

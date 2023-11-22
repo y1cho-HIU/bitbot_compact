@@ -56,25 +56,34 @@ class Operator:
             key = await asyncio.get_event_loop().run_in_executor(None, input, "cmd (press h or help)> ")
             # help command
             if key == "help" or key == "h":
-                print("help cmd")
+                self.display_help_cmd()
             # overall information
             if key == "info" or key == "i":
                 print("** OVERALL INFO **")
-                print(self.get_all_info())
+                pprint.pprint(self.get_all_info())
             # coin data
             if key == "coin" or key == "c":
                 print("** COIN DATA **")
                 pprint.pprint(self.coin_data)
+                print("** BOOK DATA **")
                 print(self.dataGetter.get_book_info())
             # statistics info
             if key == "stat" or key == "s":
                 print("** STATISTICS INFO **")
                 print(self.get_statistics_info())
+            if key == "position" or key == "p":
+                print("** POSITION INFO **")
+                print(self.account.client.futures_position_information(symbol=self.symbol))
+            if key == "trade" or key == "t":
+                print("** TRADING INFO **")
+                pprint.pprint(self.get_trading_info())
             # quit cmd
             elif key == "quit" or key == "q":
                 self.account.terminate_position()
                 print("** SUCCESSFULLY TERMINATED. **")
-                print(self.get_all_info())
+                pprint.pprint(self.get_all_info())
+                print("="*20)
+                pprint.pprint(self.get_trading_info())
                 # log trading_info
                 asyncio.get_event_loop().stop()
 
@@ -84,7 +93,9 @@ class Operator:
         print("display all info \t\t --press info or i")
         print("display coin data \t\t --press coin or c")
         print("display statistics \t\t --press stat or s")
-        print("# quit command \t\t\t --press quit or q")
+        print("display position \t\t --press position or p")
+        print("display trading info \t\t --press trade or t")
+        print("quit command \t\t\t --press quit or q")
 
     def get_total_profit(self):
         trades = self.account.client.futures_account_trades(symbol=self.symbol, limit=100)
@@ -153,5 +164,7 @@ class Operator:
                 "1d_profit": "float",
                 "start_time": self.start_time,
                 "now_pos": self.get_position_info(),
-                "historical_trading_info": self.account.client.futures_account_trades()
                 }
+
+    def get_trading_info(self):
+        return {"trading_info": self.account.client.futures_account_trades()}
