@@ -33,6 +33,9 @@ class Strategy:
         close_list = [data['close'] for data in coin_data]
         return round(statistics.stdev(close_list), 6)
 
+    def set_now_position(self, position):
+        self.now_position = position
+
     def set_target_price(self, position, now_sma, env_price):
         if position == self.POS_LONG:
             self.target_price = now_sma

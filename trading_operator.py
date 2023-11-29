@@ -4,19 +4,23 @@ import json
 import pprint
 import statistics
 
-import account
 import data_getter
 import strategy
 
 
 class Operator:
+    POS_OUT = 0
+    POS_LONG = 1
+    POS_SHORT = -1
+
     def __init__(self, client_info, sma_period, env_weight, rrr_rate, symbol='XRPUSDT'):
-        self.account = account.Account(client_info=client_info, sma_period=sma_period, symbol=symbol)
+        self.client = client_info
         self.dataGetter = data_getter.DataGetter(client_info=client_info, sma_period=sma_period, symbol=symbol)
         self.strategy = strategy.Strategy(sma_period=sma_period, env_weight=env_weight, rrr_rate=rrr_rate)
 
         self.coin_data = self.dataGetter.get_info_period()  # LIST
-        self.next_position = 0  # POS_OUT
+        self.now_position = self.POS_OUT
+        self.next_position = self.POS_OUT
         self.signal = False
         self.start_time = None
         self.start_balance = None
@@ -25,6 +29,87 @@ class Operator:
         self.sma_period = sma_period
         self.env_weight = env_weight
         self.rrr_rate = rrr_rate
+
+    def calc_quantity(self, side, close=False):
+        # get available balance
+        # get bid and ask price
+        # calc (avb * 0.9) / bid or ask price
+        market_price = self.dataGetter.get_book_info()
+        account_info = self.client.futures_account()
+        free_balance = float(account_info['availableBalance'])
+        position_info = self.client.futures_position_information(symbol=self.symbol)
+
+        if side == 'BUY':
+            if close is True:
+                return abs(float(position_info[0]['positionAmt']))
+            else:
+                return round((free_balance * 0.9) / float(market_price['bidPrice']), 4)
+        elif side == 'SELL':
+            if close is True:
+                return abs(float(position_info[0]['positionAmt']))
+            else:
+                return round((free_balance * 0.9) / float(market_price['askPrice']), 4)
+
+    def trading_order(self):
+        order = None
+        if self.now_position == self.POS_OUT:
+            if self.next_position == self.POS_LONG:
+                """ OUT -> LONG """
+                order = self.client.futures_create_order(symbol=self.symbol,
+                                                         type='MARKET',
+                                                         side='BUY',
+                                                         quantity=self.calc_quantity('BUY'))
+                self.now_position = self.POS_LONG
+                print('##### OUT -> LONG #####')
+            elif self.next_position == self.POS_SHORT:
+                """ OUT -> SHORT """
+                order = self.client.futures_create_order(symbol=self.symbol,
+                                                         type='MARKET',
+                                                         side='SELL',
+                                                         quantity=self.calc_quantity('SELL'))
+                self.now_position = self.POS_SHORT
+                print('##### OUT -> SHORT #####')
+        elif self.now_position == self.POS_LONG and self.next_position == self.POS_OUT:
+            """ LONG -> OUT """
+            order = self.client.futures_create_order(symbol=self.symbol,
+                                                     type='MARKET',
+                                                     side='SELL',
+                                                     quantity=self.calc_quantity('SELL', close=True),
+                                                     reduceOnly=True)
+            self.now_position = self.POS_OUT
+            print('##### LONG -> OUT #####')
+        elif self.now_position == self.POS_SHORT and self.next_position == self.POS_OUT:
+            """ SHORT -> OUT """
+            order = self.client.futures_create_order(symbol=self.symbol,
+                                                     type='MARKET',
+                                                     side='BUY',
+                                                     quantity=self.calc_quantity('BUY', close=True),
+                                                     reduceOnly=True)
+            self.now_position = self.POS_OUT
+            print('##### SHORT -> OUT')
+
+        self.strategy.set_now_position(self.next_position)
+        if order is not None:
+            print(order)
+
+    def terminate_position(self):
+        """ if quit-cmd entered. """
+        order = None
+        pos_info = self.client.futures_position_information
+        if self.now_position == self.POS_LONG:
+            order = self.client.futures_create_order(symbol=self.symbol,
+                                                     type='MARKET',
+                                                     side='SELL',
+                                                     quantity=float(pos_info[0]['positionAmt']),
+                                                     reduceOnly=True)
+        elif self.now_position == self.POS_SHORT:
+            order = self.client.futures_create_order(symbol=self.symbol,
+                                                     type='MARKET',
+                                                     side='SELL',
+                                                     quantity=abs(float(pos_info[0]['positionAmt'])),
+                                                     reduceOnly=True)
+        if order is not None:
+            print(order)
 
     def make_coin_data(self):
         now_data = self.dataGetter.get_info()
@@ -37,7 +122,7 @@ class Operator:
 
     async def execute_trading(self):
         self.start_time = datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S")
-        self.init_balance = self.account.client.futures_account()['availableBalance']
+        self.init_balance = self.client.futures_account()['availableBalance']
         print(f'START TIME \t: {self.start_time}')
         print(f'INIT BALANCE \t: {self.init_balance}')
         try:
@@ -45,7 +130,7 @@ class Operator:
                 self.make_coin_data()
                 self.signal, self.next_position = self.strategy.envelope_strategy(coin_data=self.coin_data)
                 if self.signal is True:
-                    self.account.trading_order()
+                    self.trading_order()
                 self.update_json_info()
                 await asyncio.sleep(300)
         except Exception as e:
@@ -73,13 +158,13 @@ class Operator:
                 pprint.pprint(self.get_statistics_info())
             if key == "position" or key == "p":
                 print("** POSITION INFO **")
-                print(self.account.client.futures_position_information(symbol=self.symbol))
+                print(self.client.futures_position_information(symbol=self.symbol))
             if key == "trade" or key == "t":
                 print("** TRADING INFO **")
                 pprint.pprint(self.get_trading_info())
             # quit cmd
             elif key == "quit" or key == "q":
-                self.account.terminate_position()
+                self.terminate_position()
                 print("** SUCCESSFULLY TERMINATED. **")
                 pprint.pprint(self.get_all_info())
                 print("="*20)
@@ -98,7 +183,7 @@ class Operator:
         print("quit command \t\t\t --press quit or q")
 
     def get_total_profit(self):
-        trades = self.account.client.futures_account_trades(symbol=self.symbol, limit=100)
+        trades = self.client.futures_account_trades(symbol=self.symbol, limit=100)
         total_profit = 0.0
         total_cost = 0.0
 
@@ -124,7 +209,7 @@ class Operator:
         }
 
     def get_position_info(self):
-        pos_info = self.account.client.futures_position_information(symbol=self.symbol)
+        pos_info = self.client.futures_position_information(symbol=self.symbol)
         pos_side = "OUT"
         if float(pos_info[0]['positionAmt']) > 0:
             pos_side = "LONG"
@@ -158,7 +243,7 @@ class Operator:
         # get all info as json_style
         return {"symbol": self.symbol,
                 "init_balance": self.init_balance,
-                "now_balance": self.account.client.futures_account()['availableBalance'],
+                "now_balance": self.client.futures_account()['availableBalance'],
                 "total_profit": self.get_total_profit(),
                 "7d_profit": "float",
                 "1d_profit": "float",
@@ -167,7 +252,7 @@ class Operator:
                 }
 
     def get_trading_info(self):
-        return {"trading_info": self.account.client.futures_account_trades(symbol=self.symbol)}
+        return {"trading_info": self.client.futures_account_trades(symbol=self.symbol)}
 
     def update_json_info(self):
         """
