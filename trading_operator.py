@@ -265,7 +265,7 @@ class Operator:
         coin_data_file_path = "json_repository/coin_data.json"
         overall_info_file_path = "json_repository/overall_info.json"
         trading_info_file_path = "json_repository/trading_info.json"
-        stat_info_file_path = "json_repository/statistics_info.json.json"
+        stat_info_file_path = "json_repository/statistics_info.json"
 
         with open(coin_data_file_path, 'w') as coin:
             json.dump(self.coin_data, coin, indent=4)
