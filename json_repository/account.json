@@ -1,0 +1,11 @@
+{
+  "ip_info": "0.0.0.0",
+  "api_key": "YOUR_API_KEY",
+  "api_secret": "YOUR_API_SECRET",
+  "test_api_key": "YOUR_TEST_KEY",
+  "test_api_secret": "YOUR_TEST_SECRET",
+  "symbol": "YOUR SYMBOL",
+  "sma_period": 10,
+  "env_weight": 1,
+  "rrr_rate": 1
+}
