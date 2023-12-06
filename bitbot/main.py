@@ -13,7 +13,7 @@ if __name__ == "__main__":
 
     mode = int(sys.argv[1])
     client = None
-    with open('./json_repository/account.json', 'r') as api:
+    with open('json_repository/account.json', 'r') as api:
         api_data = json.load(api)
 
     if mode == 0:
