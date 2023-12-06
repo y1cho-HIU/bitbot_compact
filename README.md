@@ -83,5 +83,11 @@ $ python ./bitbot_flask/app.py
 
 ### 실행 화면
 **초기 화면**
+<p align="center">
+    <img src="https://github.com/y1cho-HIU/bitbot_compact/assets/101562660/b937b7b1-7823-45c6-b9a2-091340a8d775", width="600", height="800">
+</p>
 
 **Flask 화면**
+<p align="center">
+    <img src="https://github.com/y1cho-HIU/bitbot_compact/assets/101562660/c2a73368-6a60-4175-a167-0ddcf59c00fd", width="600", height="800">
+</p>
