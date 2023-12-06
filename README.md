@@ -1,12 +1,16 @@
 <div align="center">
   
-  # BITBOT
+  # 🚀BITBOT🚀
   본 프로젝트는 가상화폐 자동매매 프로젝트로 BITCOIN의 **BIT**와 ROBOT의 **BOT**을 합친 이름입니다.
   </br>본 프로그램은 바이낸스 [테스트넷](https://testnet.binancefuture.com/en/futures/BTCUSDT, "testnet")과 [실거래](https://www.binance.com/en/futures/BTCUSDT, 'real-mode')를 지원합니다.<br/>
-  </br>
-  
   
 </div>
+
+**팀 소개**
+|팀원|담당|
+|:---|:---:|
+|⭐[avatrue](https://github.com/avatrue, "avatrue_link")|전략 구성 및 머신러닝 파트 담당|
+|👦[y1cho-HIU](https://github.com/y1cho-HIU, "y1cho_link")|개발 및 테스팅 파트 담당|
 
 ### 목차
 1. [기본 정보](#기본-정보)
@@ -21,19 +25,18 @@
 
 
 **전략**
-> 기본적으로 사용하는 전략은 envelope 지수를 활용한 변동성 돌파 매매 기법으로 필요한 파라미터는 다음과 같습니다.
+- 기본적으로 사용하는 전략은 envelope 지수를 활용한 변동성 돌파 매매 기법으로 다음과 같은 규칙을 따라 거래합니다.
+> 1. `env_up` 또는 `env_down`에 현재 가격(`now_price`)이 도달하면 포지션(`POS_LONG` 또는 `POS_SHORT`)에 진입합니다.
+> 2. 현재 가격(`now_price`)가 이동평균선(`now_sma`)과 만나면 포지션 청산(`POS_OUT`)과 함께 승리합니다.
+> 3. 현재 가격(`now_price`)가 위험 보상 비율(`rrr_up` 또는 `rrr_down`)에 도달하면 포지션 청산(`POS_OUT`)과 함께 패배합니다.
+   
+- 위에서 설명한 전략에 필요한 파라미터는 다음과 같습니다.
 
 |파라미터|설명|
 |:---:|---|
 |`sma_period`|이동평균선(SMA)의 기간을 결정하는 파라미터입니다.| 
 |`env_weight`|ENVELOPE 전략의 가중치 값을 정하는 파라미터로 `position` 진입을 결정할 때 사용됩니다.|
 |`rrr_rate`|ENVELOPE 전략의 위험보상비율(risk reward ratio)의 값을 결정하는 파라미터로 `loss_price`를 결정할 때 사용됩니다.|
-
-**팀 소개**
-|팀원명|담당|
-|:---|:---|
-|⭐[avatrue](https://github.com/avatrue, "avatrue_link")|전략 구성 및 머신러닝 파트 담당|
-|👦[y1cho-HIU](https://github.com/y1cho-HIU, "y1cho_link")|개발 및 테스팅 파트 담당|
 
 ### 시작 가이드
 **기본 설정**
@@ -82,12 +85,7 @@ $ python ./bitbot_flask/app.py
 </div>
 
 ### 실행 화면
-**초기 화면**
 <p align="center">
-    <img src="https://github.com/y1cho-HIU/bitbot_compact/assets/101562660/b937b7b1-7823-45c6-b9a2-091340a8d775", width="600", height="800">
-</p>
-
-**Flask 화면**
-<p align="center">
-    <img src="https://github.com/y1cho-HIU/bitbot_compact/assets/101562660/c2a73368-6a60-4175-a167-0ddcf59c00fd", width="600", height="800">
+    <img align="top" src="https://github.com/y1cho-HIU/bitbot_compact/assets/101562660/b937b7b1-7823-45c6-b9a2-091340a8d775", width="500", height="600">
+    <img align="top" src="https://github.com/y1cho-HIU/bitbot_compact/assets/101562660/c2a73368-6a60-4175-a167-0ddcf59c00fd", width="500", height="600">
 </p>
