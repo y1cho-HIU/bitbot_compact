@@ -34,7 +34,7 @@ class Operator:
         # get available balance
         # get bid and ask price
         # calc (avb * 0.9) / bid or ask price
-        market_price = self.dataGetter.get_book_info()
+        market_price = self.client.get_ticker(symbol=self.symbol)
         account_info = self.client.futures_account()
         free_balance = float(account_info['availableBalance'])
         position_info = self.client.futures_position_information(symbol=self.symbol)
@@ -86,7 +86,7 @@ class Operator:
                                                      quantity=self.calc_quantity('BUY', close=True),
                                                      reduceOnly=True)
             self.now_position = self.POS_OUT
-            print('##### SHORT -> OUT')
+            print('##### SHORT -> OUT #####')
 
         self.strategy.set_now_position(self.next_position)
         if order is not None:
@@ -105,7 +105,7 @@ class Operator:
         elif self.now_position == self.POS_SHORT:
             order = self.client.futures_create_order(symbol=self.symbol,
                                                      type='MARKET',
-                                                     side='SELL',
+                                                     side='BUY',
                                                      quantity=abs(float(pos_info[0]['positionAmt'])),
                                                      reduceOnly=True)
         if order is not None:
