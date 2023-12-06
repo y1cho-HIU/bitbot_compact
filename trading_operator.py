@@ -202,10 +202,10 @@ class Operator:
         pnl_percentage = pnl / total_cost * 100 if total_cost != 0 else 0.0
 
         return {
-            "total_profit": total_profit,
-            "total_cost": total_cost,
-            "pnl": pnl,
-            "pnl_percentage": pnl_percentage
+            "total_profit": round(total_profit, 2),
+            "total_cost": round(total_cost, 2),
+            "pnl": round(pnl, 2),
+            "pnl_percentage": round(pnl_percentage, 4)
         }
 
     def get_position_info(self):
@@ -242,9 +242,9 @@ class Operator:
     def get_all_info(self):
         # get all info as json_style
         return {"symbol": self.symbol,
-                "init_balance": self.init_balance,
+                "init_balance": round(self.init_balance, 2),
                 "now_balance": self.client.futures_account()['availableBalance'],
-                "total_profit": self.get_total_profit(),
+                "total_profit": round(self.get_total_profit(), 2),
                 "7d_profit": "float",
                 "1d_profit": "float",
                 "start_time": self.start_time,
